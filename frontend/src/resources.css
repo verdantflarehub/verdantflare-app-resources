@@ -1,0 +1,1247 @@
+:root {
+      --sidebar-width: 248px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    /* 默认对齐实际系统浅色青焰工业设计规范 (data-theme="light") */
+    body,
+    body[data-theme=light] {
+      color-scheme: light;
+      --bg: #eef2ef;
+      --panel: #f7faf7;
+      --subtle: #fbfcfa;
+      --line: rgba(21, 35, 30, .13);
+      --line-strong: rgba(21, 35, 30, .22);
+      --ink: #18241f;
+      --muted: #69756e;
+      --muted-2: #8a968f;
+      --accent: #087e60;
+      --accent-glow: rgba(8, 126, 96, 0.2);
+      --blue: #5379ac;
+      --amber: #b58032;
+      --danger: #c95743;
+      --aside: rgba(229, 235, 229, .92);
+      --paper: #15231e;
+      --button-ink: #f2f5f0;
+      --shadow: 0 24px 100px rgba(21, 35, 30, .16);
+      --shell-panel: rgba(255, 255, 255, .62);
+      --shell-button: rgba(21, 35, 30, .055);
+      background: linear-gradient(140deg, #eef2ef, #e7ece7);
+      color: var(--ink);
+    }
+
+    body[data-theme=dark] {
+      color-scheme: dark;
+      --bg: #111310;
+      --panel: #1a1c19;
+      --subtle: #20231f;
+      --line: rgba(236, 241, 234, .095);
+      --line-strong: rgba(236, 241, 234, .18);
+      --ink: #f1f3ee;
+      --muted: #9a9f98;
+      --muted-2: #656b62;
+      --accent: #75c7ab;
+      --accent-glow: rgba(117, 199, 171, 0.25);
+      --blue: #9bb7df;
+      --amber: #e6b268;
+      --danger: #ff8068;
+      --aside: #141613;
+      --paper: #eef2ef;
+      --button-ink: #15231e;
+      --shadow: 0 34px 100px rgba(0, 0, 0, .55);
+      --shell-panel: rgba(239, 243, 237, 0.032);
+      --shell-button: rgba(239, 243, 237, 0.05);
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      min-height: 0;
+      -webkit-font-smoothing: antialiased;
+      overflow: visible;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    a,
+    input {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      cursor: pointer;
+      color: var(--ink);
+      border: 0;
+      background: none;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    small {
+      font-size: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      letter-spacing: 1.6px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+/* ==========================================================================
+   Resource Management Dashboard (VerdantFlare Premium Cluster & Hardware View)
+   ========================================================================== */
+.resource-dashboard {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px !important;
+  width: 100%;
+  padding-bottom: 48px;
+  animation: resFadeIn 0.25s ease-out;
+}
+
+@keyframes resFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 1. Top KPI Metric Grid */
+.res-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.res-metric-card {
+  background: var(--shell-panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 18px rgba(21, 35, 30, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-theme=dark] .res-metric-card {
+  box-shadow: none;
+}
+
+.res-metric-card:hover {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(21, 35, 30, 0.07);
+}
+
+body[data-theme=dark] .res-metric-card:hover {
+  background: rgba(239, 243, 237, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.res-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.res-metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.res-metric-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.res-metric-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.res-metric-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  letter-spacing: -0.4px;
+}
+
+.res-metric-val small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: normal;
+}
+
+.res-metric-sub {
+  font-size: 12px;
+  color: var(--muted-2);
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.res-metric-meter {
+  height: 4px;
+  background: rgba(21, 35, 30, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+body[data-theme=dark] .res-metric-meter {
+  background: rgba(239, 243, 237, 0.08);
+}
+
+.res-metric-meter-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--accent), #5379ac);
+}
+
+/* 2. Structured Section Container */
+.res-section {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--shell-panel);
+  padding: 24px;
+  box-shadow: 0 4px 18px rgba(21, 35, 30, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+body[data-theme=dark] .res-section {
+  box-shadow: none;
+}
+
+.res-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+
+.res-section-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.res-section-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--shell-button);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+/* 3. Dual-GPU RTX 5090 Topology Grid */
+.gpu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gpu-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.gpu-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.gpu-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gpu-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--shell-button);
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+}
+
+.gpu-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  flex: 1;
+}
+
+.gpu-state {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.gpu-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.gpu-state.active {
+  background: rgba(8, 126, 96, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(8, 126, 96, 0.28);
+}
+
+.gpu-state.active .gpu-dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.gpu-state.standby {
+  background: var(--shell-button);
+  color: var(--muted-2);
+  border: 1px solid var(--line);
+}
+
+.gpu-state.standby .gpu-dot {
+  background: var(--muted-2);
+}
+
+.gpu-bar-wrap {
+  height: 6px;
+  background: rgba(21, 35, 30, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+body[data-theme=dark] .gpu-bar-wrap {
+  background: rgba(239, 243, 237, 0.08);
+}
+
+.gpu-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--accent), #5379ac);
+  transition: width 0.3s ease;
+}
+
+.gpu-card:has(.gpu-state.standby) .gpu-bar-fill {
+  background: var(--muted-2);
+  opacity: 0.6;
+}
+
+.gpu-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.gpu-stat-vram strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.gpu-stat-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted-2);
+}
+
+.gpu-temp {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.gpu-power {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.gpu-workload {
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workload-icon {
+  width: 13px;
+  height: 13px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.gpu-card:has(.gpu-state.standby) .workload-icon {
+  color: var(--muted-2);
+}
+
+/* 3.1 Host Compute & Memory Grid */
+.res-host-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.host-detail-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.host-detail-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.host-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.host-detail-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.host-detail-title-wrap > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.host-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.host-icon-box svg {
+  width: 16px;
+  height: 16px;
+}
+
+.host-detail-name {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.host-detail-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.host-detail-stat {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.host-detail-stat small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.host-meter {
+  height: 6px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.host-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.host-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.host-meta-lbl {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.host-meta-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.highlight-green {
+  color: var(--accent) !important;
+}
+
+.res-section-badge.highlight {
+  background: rgba(8, 126, 96, 0.1);
+  color: var(--accent);
+  border-color: rgba(8, 126, 96, 0.28);
+}
+
+/* 4. Storage & Persistence Cards */
+.res-storage-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.storage-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.storage-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.storage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.storage-mount-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.storage-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.storage-mount {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.storage-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+.storage-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.storage-val small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.storage-bar {
+  height: 8px;
+  background: rgba(21, 35, 30, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+body[data-theme=dark] .storage-bar {
+  background: rgba(239, 243, 237, 0.08);
+}
+
+.storage-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #5379ac, var(--accent));
+  transition: width 0.4s ease;
+}
+
+.storage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.storage-status-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* 5. Deployment Activity & Pipeline Queue */
+.activity-empty {
+  padding: 34px 20px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed var(--line-strong);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.activity-empty-shield {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(8, 126, 96, 0.09);
+  border: 1px solid rgba(8, 126, 96, 0.25);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.activity-empty-shield svg {
+  width: 22px;
+  height: 22px;
+}
+
+.activity-empty-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.activity-empty-sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 520px;
+}
+
+.activity-workloads {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.activity-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.activity-pill .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  margin-bottom: 10px;
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 1400px) {
+  .res-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gpu-grid {
+    grid-template-columns: 1fr;
+  }
+  .res-host-grid,
+  .res-storage-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  .res-metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .gpu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   SECTION 5: 已部署工作负载配额与资源实况 (Workloads Real Telemetry & Quota)
+   ========================================================================== */
+.workloads-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 顶部配额对账总览条 */
+.quota-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.quota-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quota-item-lbl {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quota-item-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.quota-item-val small {
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.quota-mini-meter {
+  height: 4px;
+  background: rgba(21, 35, 30, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+body[data-theme=dark] .quota-mini-meter {
+  background: rgba(239, 243, 237, 0.08);
+}
+
+.quota-mini-meter-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* 过滤与切换控制栏 */
+.workload-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.workload-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--shell-button);
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+}
+
+.workload-tab-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.workload-tab-btn.active {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.workload-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  width: 260px;
+}
+
+.workload-search input {
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--ink);
+  width: 100%;
+  font-size: 12px;
+}
+
+/* 核心：工作负载精细化卡片列表 (High-Density Telemetry Card) */
+.workload-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wl-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  position: relative;
+}
+
+.wl-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.wl-card.has-gpu {
+  border-left: 4px solid var(--accent);
+}
+
+.wl-card.cpu-only {
+  border-left: 4px solid #5379ac;
+}
+
+/* 卡片头部 */
+.wl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.wl-id-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wl-app-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.wl-card.cpu-only .wl-app-icon {
+  color: #5379ac;
+}
+
+.wl-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wl-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wl-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.wl-namespace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--shell-button);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+}
+
+.wl-pod-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
+.wl-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wl-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wl-status-tag.running {
+  background: rgba(8, 126, 96, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(8, 126, 96, 0.28);
+}
+
+.wl-uptime {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 4 列资源对账网格 (GPU/显存, CPU核数, 系统内存, 挂载模型) */
+.wl-metrics-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1.1fr 1.1fr 1.1fr;
+  gap: 16px;
+  background: var(--shell-button);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+@media (max-width: 1400px) {
+  .wl-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.wl-metric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wl-cell-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wl-cell-title .quota-badge {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.wl-cell-title .quota-badge.amber {
+  background: rgba(181, 128, 50, 0.12);
+  color: #b58032;
+  border-color: rgba(181, 128, 50, 0.3);
+}
+
+.wl-cell-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wl-actual-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.wl-actual-val small {
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.wl-req-tag {
+  font-size: 11px;
+  color: var(--muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 对比度量条：申请量与实际占用一目了然 */
+.wl-progress-track {
+  height: 7px;
+  background: rgba(21, 35, 30, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+body[data-theme=dark] .wl-progress-track {
+  background: rgba(239, 243, 237, 0.08);
+}
+
+.wl-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.wl-progress-fill.blue {
+  background: #5379ac;
+}
+
+.wl-progress-fill.amber {
+  background: #b58032;
+}
+
+.wl-metric-footnote {
+  font-size: 10.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1px;
+}
+
+/* 底部辅助元数据行 (挂载模型与任务状态) */
+.wl-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.wl-foot-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wl-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.wl-foot-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wl-btn-detail {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(8, 126, 96, 0.1);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wl-btn-detail:hover {
+  border-color: var(--accent);
+}
