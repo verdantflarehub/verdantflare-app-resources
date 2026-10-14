@@ -126,3 +126,44 @@ type Dashboard struct {
 	Workloads        []Workload      `json:"workloads"`
 	WorkloadsSummary WorkloadSummary `json:"workloads_summary"`
 }
+
+type WorkspaceVolume struct {
+	WorkspaceID    string   `json:"workspace_id"`
+	PVCName        string   `json:"pvc_name"`
+	PVName         string   `json:"pv_name"`
+	Namespace      string   `json:"namespace"`
+	PoolName       string   `json:"pool_name"`
+	AppID          string   `json:"app_id"`
+	AppDisplayName string   `json:"app_display_name"`
+	StorageBytes   int64    `json:"storage_bytes"`
+	StorageClass   string   `json:"storage_class"`
+	AccessMode     string   `json:"access_mode"`
+	NodeName       string   `json:"node_name"`
+	InstanceID     string   `json:"instance_id,omitempty"`
+	InstanceName   string   `json:"instance_name,omitempty"`
+	OrganizationID string   `json:"organization_id,omitempty"`
+	ProjectID      string   `json:"project_id,omitempty"`
+	InstallationID string   `json:"installation_id,omitempty"`
+	State          string   `json:"state"`
+	AllowedActions []string `json:"allowed_actions"`
+	BoundAt        string   `json:"bound_at,omitempty"`
+	RetainedAt     string   `json:"retained_at,omitempty"`
+}
+
+type WorkspacesResponse struct {
+	Workspaces []WorkspaceVolume `json:"workspaces"`
+	RequestID  string            `json:"request_id,omitempty"`
+}
+
+type ReleaseWorkspaceInput struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	Namespace      string `json:"namespace"`
+	PVCName        string `json:"pvc_name"`
+}
+
+type ReleaseWorkspaceResponse struct {
+	Status    string          `json:"status"`
+	Workspace WorkspaceVolume `json:"workspace"`
+	RequestID string          `json:"request_id,omitempty"`
+}
+

@@ -12,9 +12,29 @@ type Identity struct{ UserID, OrganizationID, StationID string }
 type Source interface {
 	Read(context.Context, Identity) (Snapshot, error)
 }
+type WorkspaceSource interface {
+	Workspaces(context.Context, Identity) (WorkspacesResponse, error)
+	ReleaseWorkspace(context.Context, Identity, ReleaseWorkspaceInput) (ReleaseWorkspaceResponse, error)
+}
 type Service struct {
 	Source Source
 	Now    func() time.Time
+}
+
+func (s Service) Workspaces(ctx context.Context, identity Identity) (WorkspacesResponse, error) {
+	ws, ok := s.Source.(WorkspaceSource)
+	if !ok {
+		return WorkspacesResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return ws.Workspaces(ctx, identity)
+}
+
+func (s Service) ReleaseWorkspace(ctx context.Context, identity Identity, input ReleaseWorkspaceInput) (ReleaseWorkspaceResponse, error) {
+	ws, ok := s.Source.(WorkspaceSource)
+	if !ok {
+		return ReleaseWorkspaceResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return ws.ReleaseWorkspace(ctx, identity, input)
 }
 
 func valid(v *float64) bool     { return v != nil && *v >= 0 && !math.IsNaN(*v) && !math.IsInf(*v, 0) }

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createPolling } from '../src/polling.ts'
-import { numeric, resourceValue } from '../src/model.ts'
+import { isWorkspacesResponse, numeric, parseResourceView, resourceValue } from '../src/model.ts'
 import type { AppSDK, Lifecycle } from '../src/sdk.ts'
 
 function setup() {
@@ -64,3 +64,14 @@ test('zero measurements stay zero and stale or unknown values stay unknown regar
   assert.equal(resourceValue({ ...metric, quality: 'stale' }, 'cores'), '—')
   assert.equal(resourceValue({ ...metric, quality: 'unavailable' }, 'cores'), '—')
 })
+
+test('parseResourceView and isWorkspacesResponse validate sub-view query and workspace response', () => {
+  assert.equal(parseResourceView('/'), 'monitor')
+  assert.equal(parseResourceView('/?view=monitor'), 'monitor')
+  assert.equal(parseResourceView('/?view=storage'), 'storage')
+  assert.equal(parseResourceView('/?view=tasks'), 'tasks')
+  assert.equal(parseResourceView('/?view=unknown'), 'monitor')
+  assert.equal(isWorkspacesResponse({ workspaces: [] }), true)
+  assert.equal(isWorkspacesResponse({}), false)
+})
+

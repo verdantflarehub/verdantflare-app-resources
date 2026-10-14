@@ -43,3 +43,43 @@ export function resourceState(metric: Metric) {
   return metric.quality === 'fresh' && valid(metric.value) ? 'fresh' : 'unavailable'
 }
 export function resourceValue(metric: Metric, unit: string) { return resourceState(metric) === 'fresh' ? formatResource(metric.value, unit) : '—' }
+
+export type ResourceView = 'monitor' | 'storage' | 'tasks'
+
+export interface WorkspaceVolume {
+  workspace_id: string
+  pvc_name: string
+  pv_name: string
+  namespace: string
+  pool_name: string
+  app_id: string
+  app_display_name: string
+  storage_bytes: number
+  storage_class: string
+  access_mode: string
+  node_name: string
+  instance_id?: string | null
+  instance_name?: string | null
+  organization_id?: string | null
+  project_id?: string | null
+  installation_id?: string | null
+  state: 'in_use' | 'bound_stopped' | 'retained' | 'available'
+  allowed_actions: string[]
+  bound_at?: string | null
+  retained_at?: string | null
+}
+
+export function isWorkspacesResponse(value: unknown): value is { workspaces: WorkspaceVolume[] } {
+  if (!value || typeof value !== 'object') return false
+  return Array.isArray((value as { workspaces?: unknown }).workspaces)
+}
+
+export function parseResourceView(path: string | undefined | null): ResourceView {
+  if (!path) return 'monitor'
+  const qIndex = path.indexOf('?')
+  if (qIndex < 0) return 'monitor'
+  const params = new URLSearchParams(path.slice(qIndex + 1))
+  const v = params.get('view')
+  return v === 'storage' || v === 'tasks' ? v : 'monitor'
+}
+

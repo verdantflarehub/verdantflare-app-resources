@@ -11,6 +11,7 @@ import (
 	"github.com/verdantflarehub/verdantflare-app-resources/internal/buildinfo"
 	"github.com/verdantflarehub/verdantflare-app-resources/internal/dashboard"
 	"github.com/verdantflarehub/verdantflare-app-resources/internal/resources"
+	"github.com/verdantflarehub/verdantflare-app-resources/internal/strictjson"
 )
 
 type Server struct {
@@ -54,6 +55,39 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fail(w, 401, "UNAUTHENTICATED")
 		return
 	}
+	if r.URL.Path == "/api/v1/workspaces/release" {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", "POST")
+			fail(w, 405, "METHOD_NOT_ALLOWED")
+			return
+		}
+		if r.URL.RawQuery != "" || r.URL.ForceQuery || r.URL.RawPath != "" || r.Header.Get("Content-Encoding") != "" {
+			fail(w, 400, "INVALID_REQUEST")
+			return
+		}
+		identity := resources.Identity{UserID: r.Header.Get("X-User-Id"), OrganizationID: r.Header.Get("X-Organization-Id"), StationID: r.Header.Get("X-Station-Id")}
+		if len(r.Header.Values("X-User-Id")) != 1 || len(r.Header.Values("X-Organization-Id")) != 1 || len(r.Header.Values("X-Station-Id")) != 1 || !resources.ValidIdentity(identity) || identity.StationID != s.stationID {
+			fail(w, 403, "FORBIDDEN")
+			return
+		}
+		var in resources.ReleaseWorkspaceInput
+		if strictjson.Decode(r.Body, 4096, &in) != nil || strings.TrimSpace(in.IdempotencyKey) == "" || strings.TrimSpace(in.Namespace) == "" || strings.TrimSpace(in.PVCName) == "" {
+			fail(w, 400, "INVALID_ARGUMENT")
+			return
+		}
+		result, err := s.resources.ReleaseWorkspace(r.Context(), identity, in)
+		if err != nil {
+			var upstream *resources.SourceError
+			if errors.As(err, &upstream) {
+				fail(w, upstream.Status, upstream.Code)
+			} else {
+				fail(w, 502, "TELEMETRY_INVALID")
+			}
+			return
+		}
+		reply(w, 200, result)
+		return
+	}
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", "GET")
 		fail(w, 405, "METHOD_NOT_ALLOWED")
@@ -90,13 +124,27 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(data)
 		return
 	}
-	if r.URL.Path != "/api/v1/dashboard" || r.URL.RawQuery != "" {
+	if r.URL.Path != "/api/v1/dashboard" && r.URL.Path != "/api/v1/workspaces" {
 		fail(w, 404, "NOT_FOUND")
 		return
 	}
 	identity := resources.Identity{UserID: r.Header.Get("X-User-Id"), OrganizationID: r.Header.Get("X-Organization-Id"), StationID: r.Header.Get("X-Station-Id")}
 	if len(r.Header.Values("X-User-Id")) != 1 || len(r.Header.Values("X-Organization-Id")) != 1 || len(r.Header.Values("X-Station-Id")) != 1 || !resources.ValidIdentity(identity) || identity.StationID != s.stationID {
 		fail(w, 403, "FORBIDDEN")
+		return
+	}
+	if r.URL.Path == "/api/v1/workspaces" {
+		result, err := s.resources.Workspaces(r.Context(), identity)
+		if err != nil {
+			var upstream *resources.SourceError
+			if errors.As(err, &upstream) {
+				fail(w, upstream.Status, upstream.Code)
+			} else {
+				fail(w, 502, "TELEMETRY_INVALID")
+			}
+			return
+		}
+		reply(w, 200, result)
 		return
 	}
 	// The source performs live Station authorization. Header possession or the
@@ -113,3 +161,4 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	reply(w, 200, result)
 }
+
