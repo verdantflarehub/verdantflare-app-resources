@@ -57,9 +57,10 @@ test('failed refresh clears old figures, and multiple refreshes do not overlap',
   s.polling.dispose()
 })
 
-test('zero measurements stay zero and expired or unknown values stay unknown', () => {
+test('zero measurements stay zero and stale or unknown values stay unknown regardless of client clock skew', () => {
   assert.equal(numeric(0), '0'); assert.equal(numeric(null), '—'); assert.equal(numeric(Number.NaN), '—')
-  const now = Date.now(), metric = { value: 0, request: 0, limit: null, sampled_at: new Date(now).toISOString(), quality: 'fresh', scope: 'instance_container', unit: 'cores' }
-  assert.equal(resourceValue(metric, 'cores', now), '0 核')
-  assert.equal(resourceValue(metric, 'cores', now+31000), '—')
+  const now = Date.now(), metric = { value: 0, request: 0, limit: null, sampled_at: new Date(now + 10000).toISOString(), quality: 'fresh', scope: 'instance_container', unit: 'cores' }
+  assert.equal(resourceValue(metric, 'cores'), '0 核')
+  assert.equal(resourceValue({ ...metric, quality: 'stale' }, 'cores'), '—')
+  assert.equal(resourceValue({ ...metric, quality: 'unavailable' }, 'cores'), '—')
 })

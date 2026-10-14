@@ -38,9 +38,8 @@ export function formatResource(value: unknown, unit = 'cores') {
   const scale = value > 0 ? Math.max(0, Math.min(4, Math.floor(Math.log(value) / Math.log(1024)))) : 0
   return numeric(value / 1024 ** scale, 2) + ' ' + ['B','KiB','MiB','GiB','TiB'][scale]
 }
-export function resourceState(metric: Metric, now = Date.now()) {
-  const age = now - Date.parse(metric.sampled_at ?? '')
-  if (metric.quality === 'stale' || metric.quality === 'fresh' && Number.isFinite(age) && age > 30_000) return 'stale'
-  return metric.quality === 'fresh' && Number.isFinite(age) && age >= -5000 && age <= 30_000 && valid(metric.value) ? 'fresh' : 'unavailable'
+export function resourceState(metric: Metric) {
+  if (metric.quality === 'stale') return 'stale'
+  return metric.quality === 'fresh' && valid(metric.value) ? 'fresh' : 'unavailable'
 }
-export function resourceValue(metric: Metric, unit: string, now = Date.now()) { return resourceState(metric, now) === 'fresh' ? formatResource(metric.value, unit) : '—' }
+export function resourceValue(metric: Metric, unit: string) { return resourceState(metric) === 'fresh' ? formatResource(metric.value, unit) : '—' }
