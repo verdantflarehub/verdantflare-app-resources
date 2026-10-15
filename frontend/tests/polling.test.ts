@@ -68,6 +68,8 @@ test('zero measurements stay zero and stale or unknown values stay unknown regar
 
 test('parseResourceView and isWorkspacesResponse validate sub-view query and workspace response', () => {
   assert.equal(parseResourceView('/'), 'monitor')
+  assert.equal(parseResourceView('/storage'), 'storage')
+  assert.equal(parseResourceView('/tasks'), 'tasks')
   assert.equal(parseResourceView('/?view=monitor'), 'monitor')
   assert.equal(parseResourceView('/?view=storage'), 'storage')
   assert.equal(parseResourceView('/?view=tasks'), 'tasks')

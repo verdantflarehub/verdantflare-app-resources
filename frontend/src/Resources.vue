@@ -74,7 +74,7 @@ async function changeView(next: ResourceView) {
   cancelAnimationFrame(restoreFrame)
   restoreFrame = requestAnimationFrame(() => { if (!disposed && active) host?.restoreScroll?.(scrolls[next]) })
 }
-async function navigateStorage() { await sdk?.navigation?.request?.({ target: 'app', path: '/?view=storage' }) }
+async function navigateStorage() { await sdk?.navigation?.request?.({ target: 'app', path: '/storage' }) }
 async function refresh() {
   refreshing.value = true
   try { await Promise.all([polling?.refresh(), currentView.value === 'storage' ? volumePolling?.refresh() : undefined]) }

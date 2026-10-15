@@ -80,6 +80,8 @@ export function isWorkspacesResponse(value: unknown): value is { workspaces: Wor
 
 export function parseResourceView(path: string | undefined | null): ResourceView {
   if (!path) return 'monitor'
+  const pathname = path.split('?')[0]
+  if (pathname === '/storage' || pathname === '/tasks') return pathname.slice(1) as ResourceView
   const qIndex = path.indexOf('?')
   if (qIndex < 0) return 'monitor'
   const params = new URLSearchParams(path.slice(qIndex + 1))
