@@ -28,6 +28,10 @@ test('synthetic release binds navigation, dashboard and original asset bytes', a
   assert.equal(dashboard.dashboard.artifactDigest, digest)
   assert.equal(navigation.artifactDigest, digest)
   assert.equal(navigation.appId, 'resources')
+  assert.equal(navigation.schemaVersion, 2)
+  assert.deepEqual(navigation.entry.children.map(child => [child.entryId, child.route]), [
+    ['monitor', '/'], ['storage', '/?view=storage'], ['tasks', '/?view=tasks'],
+  ])
   assert.equal(dashboard.dashboard.minimumSdkVersion, '1.1.0')
   assert.deepEqual(Object.keys(JSON.parse(index).files), ['index.html'])
   assert.equal(run().status, 0)

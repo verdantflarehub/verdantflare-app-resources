@@ -31,6 +31,10 @@ const declaration = { schemaVersion: 1, appId: 'resources', appVersion: version,
 } }
 await writeFile(resolve(root, 'asset-index.json'), index)
 await writeFile(resolve(root, 'dashboard-declaration.json'), JSON.stringify(declaration))
-const navigation = { schemaVersion: 1, appId: 'resources', appVersion: version, artifactDigest: declaration.dashboard.artifactDigest,
-  entry: { entryId: 'main', title: '资源管理', iconRef: 'server', route: '/', accessRuleRef: 'resources-read' } }
+const navigation = { schemaVersion: 2, appId: 'resources', appVersion: version, artifactDigest: declaration.dashboard.artifactDigest,
+  entry: { entryId: 'main', title: '资源管理', iconRef: 'server', route: '/', accessRuleRef: 'resources-read', children: [
+    { entryId: 'monitor', title: '资源监控', route: '/', accessRuleRef: 'resources-read', order: 10 },
+    { entryId: 'storage', title: '存储管理', route: '/?view=storage', accessRuleRef: 'resources-read', order: 20 },
+    { entryId: 'tasks', title: '任务监控', route: '/?view=tasks', accessRuleRef: 'resources-read', order: 30 },
+  ] } }
 await writeFile(resolve(root, 'navigation-declaration.json'), JSON.stringify(navigation))
