@@ -11,10 +11,11 @@ export interface Node {
   mem_total_bytes: NumberValue; mem_used_bytes: NumberValue; mem_available_bytes: NumberValue; mem_cached_bytes: NumberValue; mem_buffers_bytes: NumberValue; mem_used_percent: NumberValue
   storage_disks: Disk[] | null
 }
-export interface Metric { value: NumberValue; request: NumberValue; limit: NumberValue; sampled_at: string | null; quality: string; scope: string; unit: string }
+export interface Metric { value: NumberValue; request: NumberValue; limit: NumberValue; sampled_at: string | null; quality: string; scope: string; unit: string; reason?: string }
 export interface Workload {
   name: string; display_name: string; namespace: string; pod_uid: string; type: string; status: string; age: string
-  containers: { name: string; ready: boolean; restarts: number; cpu: Metric; memory: Metric; gpu_request: NumberValue }[]
+  pod_name?: string; instance_alias?: string
+  containers: { name: string; ready: boolean; restarts: number; cpu: Metric; memory: Metric; gpu_request: NumberValue; gpu_limit?: NumberValue }[]
 }
 export interface Dashboard {
   schema_version: number; observed_at: string; hardware_state: 'fresh' | 'stale' | 'unavailable'
@@ -71,7 +72,10 @@ export interface WorkspaceVolume {
 
 export function isWorkspacesResponse(value: unknown): value is { workspaces: WorkspaceVolume[] } {
   if (!value || typeof value !== 'object') return false
-  return Array.isArray((value as { workspaces?: unknown }).workspaces)
+  const rows = (value as { workspaces?: unknown }).workspaces
+  return Array.isArray(rows) && rows.every(w => w && typeof w === 'object' &&
+    ['workspace_id', 'pvc_name', 'pv_name', 'namespace', 'state'].every(k => typeof w[k] === 'string') &&
+    Array.isArray(w.allowed_actions) && w.allowed_actions.every((a: unknown) => typeof a === 'string'))
 }
 
 export function parseResourceView(path: string | undefined | null): ResourceView {

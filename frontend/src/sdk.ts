@@ -24,6 +24,8 @@ export interface AppSDK {
 export interface DashboardHost {
   ready(): void
   resize(height: number): void
+  getScroll?(): number
+  restoreScroll?(top: number): void
 }
 declare global { interface Window { $wujie?: { props?: { appSDK?: AppSDK; dashboardHost?: DashboardHost } } } }
 

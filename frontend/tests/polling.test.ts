@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createPolling } from '../src/polling.ts'
+import { createPolling, createScopedPolling } from '../src/polling.ts'
 import { isWorkspacesResponse, numeric, parseResourceView, resourceValue } from '../src/model.ts'
 import type { AppSDK, Lifecycle } from '../src/sdk.ts'
 
@@ -47,13 +47,13 @@ test('context change clears previous tenant data and rejects old response', asyn
   s.polling.dispose()
 })
 
-test('failed refresh clears old figures, and multiple refreshes do not overlap', async () => {
+test('failed refresh retains scoped last snapshot, and multiple refreshes do not overlap', async () => {
   const s = setup(); const first = s.polling.refresh(); await s.polling.refresh()
   assert.equal(s.requests.length, 1)
   s.requests[0].resolve(response); await first
   const next = s.polling.refresh(); s.requests[1].resolve({ status: 503, data: {}, requestId: 'offline' }); await next
-  assert.equal((s.updates[1] as { state: string }).state, 'error')
-  assert.equal((s.updates[1] as { data: unknown }).data, null)
+  assert.equal((s.updates[1] as { state: string }).state, 'ready')
+  assert.deepEqual((s.updates[1] as { data: unknown }).data, response.data)
   s.polling.dispose()
 })
 
@@ -73,5 +73,25 @@ test('parseResourceView and isWorkspacesResponse validate sub-view query and wor
   assert.equal(parseResourceView('/?view=unknown'), 'monitor')
   assert.equal(isWorkspacesResponse({ workspaces: [] }), true)
   assert.equal(isWorkspacesResponse({}), false)
+})
+
+test('disabled workspace polling starts only on storage and aborts when leaving', async () => {
+  let requests = 0, signal: AbortSignal | undefined
+  const sdk = { app: { request: (_: unknown, options: { signal?: AbortSignal }) => { requests++; signal = options.signal; return new Promise(() => {}) } },
+    lifecycle: { subscribe: () => () => {} }, context: { subscribe: () => () => {} } } as unknown as AppSDK
+  const polling = createScopedPolling(sdk, '/api/v1/workspaces', isWorkspacesResponse, () => {}, undefined, false)
+  await polling.refresh(); assert.equal(requests, 0)
+  polling.setEnabled(true); assert.equal(requests, 1)
+  polling.setEnabled(false); assert.equal(signal?.aborted, true)
+  polling.dispose(); polling.setEnabled(true); assert.equal(requests, 1)
+})
+
+test('permission denial removes last successful snapshot instead of retaining it', async () => {
+  const s = setup(), first = s.polling.refresh()
+  s.requests[0].resolve(response); await first
+  const next = s.polling.refresh(); s.requests[1].resolve({ status: 403, data: {}, requestId: 'denied' }); await next
+  assert.equal((s.updates[1] as { data: unknown }).data, null)
+  assert.equal((s.updates[1] as { state: string }).state, 'error')
+  s.polling.dispose()
 })
 
