@@ -4,6 +4,10 @@ export interface AppRoute {
   path: string
   revision: number
 }
+export interface AppContext {
+  userId: string; organizationId: string; stationId: string; projectId: string | null
+  appId: string; installationId: string; contextRevision: string
+}
 export interface AppSDK {
   version: string
   app: {
@@ -13,13 +17,19 @@ export interface AppSDK {
     ): Promise<{ status: number; data: unknown; requestId: string }>
   }
   lifecycle: { subscribe(listener: (event: Lifecycle) => void): () => void }
-  context: { subscribe(listener: () => void): () => void }
+  context: { get?(): Readonly<AppContext>; subscribe(listener: () => void): () => void }
   theme: { get(): 'light' | 'dark'; subscribe(listener: (theme: 'light' | 'dark') => void): () => void }
   navigation?: {
     get(): AppRoute
     subscribe(listener: (route: AppRoute) => void): () => void
     request?(input: { target: 'app' | 'appcenter'; path: string }): Promise<unknown>
   }
+}
+
+export function contextScope(sdk: AppSDK): string | null {
+  const value = sdk.context.get?.()
+  return value ? JSON.stringify([value.userId, value.organizationId, value.stationId, value.projectId,
+    value.appId, value.installationId, value.contextRevision]) : null
 }
 export interface DashboardHost {
   ready(): void

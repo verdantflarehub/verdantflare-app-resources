@@ -7,6 +7,7 @@ import type { AppSDK, Lifecycle } from '../src/sdk.ts'
 function setup() {
   let lifecycle: (event: Lifecycle) => void = () => {}
   let context = () => {}
+  let contextRevision = 'scope-1'
   const requests: { signal?: AbortSignal; resolve: (result: { status: number; data: unknown; requestId: string }) => void }[] = []
   const timers = new Map<number, () => void>()
   const updates: unknown[] = []
@@ -15,11 +16,11 @@ function setup() {
     version: '1.1.0',
     app: { request: (_input, options) => new Promise(resolve => { requests.push({ signal: options?.signal, resolve }) }) },
     lifecycle: { subscribe: listener => { lifecycle = listener; return () => { lifecycle = () => {} } } },
-    context: { subscribe: listener => { context = listener; return () => { context = () => {} } } },
+    context: { get: () => ({ userId: 'user', organizationId: 'org', stationId: 'station', projectId: null, appId: 'resources', installationId: 'install', contextRevision }), subscribe: listener => { context = listener; return () => { context = () => {} } } },
     theme: { get: () => 'light', subscribe: () => () => {} },
   }
   const polling = createPolling(sdk, value => updates.push(value), { schedule: action => { timers.set(++serial, action); return serial }, cancel: handle => timers.delete(handle as number) })
-  return { requests, timers, updates, polling, lifecycle: (event: Lifecycle) => lifecycle(event), context: () => context() }
+  return { requests, timers, updates, polling, lifecycle: (event: Lifecycle) => lifecycle(event), context: () => { contextRevision += '-next'; context() }, sameContext: () => context() }
 }
 const response = { status: 200, requestId: 'fixture', data: { schema_version: 1, observed_at: new Date().toISOString(), hardware_state: 'unavailable', summary: {}, workloads: [], workloads_summary: {} } }
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
@@ -92,6 +93,17 @@ test('permission denial removes last successful snapshot instead of retaining it
   const next = s.polling.refresh(); s.requests[1].resolve({ status: 403, data: {}, requestId: 'denied' }); await next
   assert.equal((s.updates[1] as { data: unknown }).data, null)
   assert.equal((s.updates[1] as { state: string }).state, 'error')
+  s.polling.dispose()
+})
+
+test('repeated identical host context retains snapshot and pending read across subpages', async () => {
+  const s = setup(), first = s.polling.refresh()
+  s.sameContext()
+  assert.equal(s.requests[0].signal?.aborted, false)
+  s.requests[0].resolve(response); await first
+  s.sameContext()
+  assert.equal(s.updates.length, 1)
+  assert.equal(s.requests.length, 1)
   s.polling.dispose()
 })
 

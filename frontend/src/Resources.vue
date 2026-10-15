@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import ResourceIcon from './ResourceIcon.vue'
-import { hostProps } from './sdk'
+import { contextScope, hostProps } from './sdk'
 import type { AppSDK, DashboardHost } from './sdk'
 import { createPolling, createScopedPolling } from './polling'
 import { formatResource, isWorkspacesResponse, meter, numeric, parseResourceView, ratio, scaled, valid } from './model'
@@ -61,6 +61,7 @@ function gpuDeclaration(w: Workload) {
 let sdk: AppSDK | undefined, host: DashboardHost | undefined, polling: ReturnType<typeof createPolling> | undefined
 let volumePolling: ReturnType<typeof createScopedPolling<{ workspaces: WorkspaceVolume[] }>> | undefined
 let observer: ResizeObserver | undefined, disposed = false, active = true, scopeEpoch = 0
+let scope: string | null = null
 const subscriptions: (() => void)[] = [], scrolls: Record<ResourceView, number> = { monitor: 0, storage: 0, tasks: 0 }
 let restoreFrame = 0
 async function changeView(next: ResourceView) {
@@ -131,6 +132,9 @@ async function submitRelease() {
   } finally { if (epoch === scopeEpoch) releasing.value = false }
 }
 function resetScope() {
+  const next = sdk ? contextScope(sdk) : null
+  if (next !== null && next === scope) return
+  scope = next
   scopeEpoch++; releasing.value = false; closeRelease(); releaseIntents.clear(); toast.value = ''
   clearVolumes(); clearTasks(); expandedGPU.value.clear(); expandedVolume.value.clear(); expandedTask.value.clear(); expandedHost.value = false
   for (const key of Object.keys(scrolls) as ResourceView[]) scrolls[key] = 0
@@ -145,6 +149,7 @@ onMounted(() => {
   const props = hostProps()
   if (!props) { state.value = 'error'; error.value = '请从 Studio 打开资源管理。'; return }
   sdk = props.sdk; host = props.host
+  scope = contextScope(sdk)
   document.body.dataset.theme = sdk.theme.get()
   subscriptions.push(sdk.theme.subscribe(theme => { document.body.dataset.theme = theme }))
   currentView.value = parseResourceView(sdk.navigation?.get().path ?? window.location.search)

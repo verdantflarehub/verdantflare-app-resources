@@ -1,4 +1,5 @@
 import type { AppSDK, Lifecycle } from './sdk.ts'
+import { contextScope } from './sdk.ts'
 import { isDashboard } from './model.ts'
 import type { Dashboard } from './model.ts'
 
@@ -12,6 +13,7 @@ export function createScopedPolling<T>(sdk: AppSDK, path: string, validate: (val
   update: (result: ReadResult<T>) => void, timers: Timers = defaults, initiallyEnabled = true) {
   let state: Lifecycle = 'active', epoch = 0, enabled = initiallyEnabled
   let timer: unknown, pending: AbortController | null = null, last: T | null = null
+  let scope = contextScope(sdk)
   function cancel() {
     epoch++
     if (timer !== undefined) timers.cancel(timer)
@@ -53,6 +55,9 @@ export function createScopedPolling<T>(sdk: AppSDK, path: string, validate: (val
   })
   unsubscribeContext = sdk.context.subscribe(() => {
     if (state === 'dispose') return
+    const next = contextScope(sdk)
+    if (next !== null && next === scope) return
+    scope = next
     cancel(); last = null; update({ state: 'loading', data: null, message: '' })
     if (state === 'active') void refresh()
   })
