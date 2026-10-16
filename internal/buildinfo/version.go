@@ -2,4 +2,4 @@
 package buildinfo
 
 // Version is injected from VERSION by the release image build.
-var Version = "0.1.2"
+var Version = "0.1.6"

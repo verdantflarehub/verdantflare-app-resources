@@ -1,15 +1,16 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createPolling, createScopedPolling } from '../src/polling.ts'
+import { computeBackoffMs, createPolling, createScopedPolling } from '../src/polling.ts'
 import { isWorkspacesResponse, numeric, parseResourceView, resourceValue } from '../src/model.ts'
 import type { AppSDK, Lifecycle } from '../src/sdk.ts'
 
-function setup() {
+function setup(random: () => number = () => 0.5) {
   let lifecycle: (event: Lifecycle) => void = () => {}
   let context = () => {}
   let contextRevision = 'scope-1'
   const requests: { signal?: AbortSignal; resolve: (result: { status: number; data: unknown; requestId: string }) => void }[] = []
   const timers = new Map<number, () => void>()
+  const delays: number[] = []
   const updates: unknown[] = []
   let serial = 0
   const sdk: AppSDK = {
@@ -19,8 +20,8 @@ function setup() {
     context: { get: () => ({ userId: 'user', organizationId: 'org', stationId: 'station', projectId: null, appId: 'resources', installationId: 'install', contextRevision }), subscribe: listener => { context = listener; return () => { context = () => {} } } },
     theme: { get: () => 'light', subscribe: () => () => {} },
   }
-  const polling = createPolling(sdk, value => updates.push(value), { schedule: action => { timers.set(++serial, action); return serial }, cancel: handle => timers.delete(handle as number) })
-  return { requests, timers, updates, polling, lifecycle: (event: Lifecycle) => lifecycle(event), context: () => { contextRevision += '-next'; context() }, sameContext: () => context() }
+  const polling = createPolling(sdk, value => updates.push(value), { schedule: (action, delay) => { delays.push(delay); timers.set(++serial, action); return serial }, cancel: handle => timers.delete(handle as number) }, random)
+  return { requests, timers, delays, updates, polling, lifecycle: (event: Lifecycle) => lifecycle(event), context: () => { contextRevision += '-next'; context() }, sameContext: () => context() }
 }
 const response = { status: 200, requestId: 'fixture', data: { schema_version: 1, observed_at: new Date().toISOString(), hardware_state: 'unavailable', summary: {}, workloads: [], workloads_summary: {} } }
 const flush = async () => { await Promise.resolve(); await Promise.resolve() }
@@ -55,6 +56,36 @@ test('failed refresh retains scoped last snapshot, and multiple refreshes do not
   const next = s.polling.refresh(); s.requests[1].resolve({ status: 503, data: {}, requestId: 'offline' }); await next
   assert.equal((s.updates[1] as { state: string }).state, 'ready')
   assert.deepEqual((s.updates[1] as { data: unknown }).data, response.data)
+  s.polling.dispose()
+})
+
+test('consecutive failures apply exponential backoff with ±15% jitter and reset to 3000ms on recovery', async () => {
+  assert.equal(computeBackoffMs(1, () => 0), 850)
+  assert.equal(computeBackoffMs(1, () => 0.5), 1000)
+  assert.equal(computeBackoffMs(1, () => 1), 1150)
+  assert.equal(computeBackoffMs(2, () => 0.5), 2000)
+  assert.equal(computeBackoffMs(3, () => 0.5), 4000)
+
+  const s = setup(() => 1)
+  const first = s.polling.refresh()
+  s.requests[0].resolve(response); await first
+  assert.equal(s.delays[0], 3000)
+
+  const f1 = s.polling.refresh(); s.requests[1].resolve({ status: 502, data: {}, requestId: 'e1' }); await f1
+  assert.equal(s.delays[1], 1150)
+  assert.equal((s.updates[1] as { failures?: number; tripped?: boolean }).failures, 1)
+  assert.equal((s.updates[1] as { failures?: number; tripped?: boolean }).tripped, false)
+
+  const f2 = s.polling.refresh(); s.requests[2].resolve({ status: 502, data: {}, requestId: 'e2' }); await f2
+  assert.equal(s.delays[2], 2300)
+
+  const f3 = s.polling.refresh(); s.requests[3].resolve({ status: 502, data: {}, requestId: 'e3' }); await f3
+  assert.equal(s.delays[3], 4600)
+  assert.equal((s.updates[3] as { failures?: number; tripped?: boolean; data: unknown }).tripped, true)
+  assert.deepEqual((s.updates[3] as { data: unknown }).data, response.data)
+
+  const ok = s.polling.refresh(); s.requests[4].resolve(response); await ok
+  assert.equal(s.delays[4], 3000)
   s.polling.dispose()
 })
 
