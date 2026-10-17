@@ -31,7 +31,7 @@ GitHub Actions 在 `release` 分支按 `VERSION` 编译前后端、生成 Dashbo
 
 ## 4. 当前依据
 
-- [预装应用迁移计划](https://github.com/verdantflarehub/verdantflare-design/blob/dev/plan/2026.10.studio.appcenter.preinstalled.plan.md)。
-- [预装应用迁移设计](https://github.com/verdantflarehub/verdantflare-design/blob/dev/changes/change_20261011_preinstalled_apps.md)。
+- [预装应用迁移计划](https://github.com/verdantflarehub/verdantflare-design/blob/dev/plan/archive/2026.10.studio.appcenter.preinstalled.plan.md)。
+- [预装应用迁移设计](https://github.com/verdantflarehub/verdantflare-design/blob/dev/changes/archive/change_20261011_preinstalled_apps.md)。
 - [AppDashboard 契约](https://github.com/verdantflarehub/verdantflare-design/blob/dev/docs/design/contracts/app-dashboard-v1.md)。
 - [GitHub Actions 指南](https://github.com/verdantflarehub/verdantflare-design/blob/dev/docs/GithubAction.md)。
