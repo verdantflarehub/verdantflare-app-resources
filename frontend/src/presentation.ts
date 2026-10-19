@@ -3,6 +3,7 @@ import type { Metric, Workload, WorkspaceVolume } from './model.ts'
 
 export function workloadKey(w: Workload) { return `${w.namespace}/${w.pod_uid || w.name}` }
 export function workspaceKey(w: WorkspaceVolume) { return `${w.namespace}/${w.pvc_name}` }
+export function isCurrentWorkload(w: Workload) { return w.status !== 'Succeeded' }
 export function statusGroup(w: Workload) {
   if (w.status === 'Running') return w.containers.length > 0 && w.containers.every(c => c.ready) ? 'running' : 'waiting'
   if (w.status === 'Pending') return 'waiting'

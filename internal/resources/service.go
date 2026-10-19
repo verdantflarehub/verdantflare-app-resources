@@ -115,6 +115,10 @@ func Project(raw Snapshot, now time.Time) (Dashboard, error) {
 			return Dashboard{}, errors.New("ambiguous workload identity")
 		}
 		seen[source.PodUID] = true
+		// A succeeded Pod is a finished one-shot record. Current tasks are still running, waiting, or failed.
+		if source.Status == "Succeeded" {
+			continue
+		}
 		w := source
 		w.Containers = append([]Container{}, source.Containers...)
 		w.Type = "infra"

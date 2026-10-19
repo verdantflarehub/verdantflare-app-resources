@@ -91,10 +91,20 @@ func TestWorkloadScopeAndFreshness(t *testing.T) {
 			if kind != "completed" && out.Workloads[0].Containers[0].CPU.Value != nil {
 				t.Fatal("unattributable sample exposed")
 			}
-			if kind == "completed" && out.WorkloadsSummary.TotalCPURequested != 0 {
-				t.Fatal("completed pod counted as active reservation")
+			if kind == "completed" && (len(out.Workloads) != 0 || out.WorkloadsSummary.TotalPods != 0 || out.WorkloadsSummary.TotalCPURequested != 0) {
+				t.Fatal("completed pod remained in current tasks")
 			}
 		})
+	}
+	mixed := fixture(now)
+	finished := mixed.Workloads[0]
+	finished.PodUID, finished.Name, finished.PodName, finished.Status = "uid-done", "migrate", "migrate", "Succeeded"
+	failed := mixed.Workloads[0]
+	failed.PodUID, failed.Name, failed.PodName, failed.Status = "uid-failed", "migrate-failed", "migrate-failed", "Failed"
+	mixed.Workloads = append(mixed.Workloads, finished, failed)
+	mixedOut, err := Project(mixed, now)
+	if err != nil || len(mixedOut.Workloads) != 2 || mixedOut.WorkloadsSummary.TotalPods != 2 || mixedOut.Workloads[1].Status != "Failed" {
+		t.Fatal("current tasks dropped a running or failed workload", err, mixedOut.WorkloadsSummary.TotalPods)
 	}
 	bad := fixture(now)
 	bad.Workloads = append(bad.Workloads, bad.Workloads[0])

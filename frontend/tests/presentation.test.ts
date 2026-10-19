@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { aggregate, releaseReason, statusGroup, uuidV7, workloadKey } from '../src/presentation.ts'
+import { aggregate, isCurrentWorkload, releaseReason, statusGroup, uuidV7, workloadKey } from '../src/presentation.ts'
 import { createReleaseIntents, isReleased } from '../src/release.ts'
 import { isWorkspacesResponse } from '../src/model.ts'
 import type { Metric, Workload, WorkspaceVolume } from '../src/model.ts'
@@ -25,6 +25,9 @@ test('workload statuses are mutually exclusive and preserve other states', () =>
   assert.equal(statusGroup({ ...workload, status: 'Pending' }), 'waiting')
   assert.equal(statusGroup({ ...workload, status: 'Failed' }), 'error')
   assert.equal(statusGroup({ ...workload, status: 'Succeeded' }), 'other')
+  assert.equal(isCurrentWorkload(workload), true)
+  assert.equal(isCurrentWorkload({ ...workload, status: 'Failed' }), true)
+  assert.equal(isCurrentWorkload({ ...workload, status: 'Succeeded' }), false)
   assert.notEqual(workloadKey(workload), workloadKey({ ...workload, namespace: 'other' }))
 })
 test('release requires retained state, server grant and exact PVC confirmation', () => {

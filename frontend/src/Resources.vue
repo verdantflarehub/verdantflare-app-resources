@@ -6,7 +6,7 @@ import type { AppSDK, DashboardHost } from './sdk'
 import { createPolling, createScopedPolling } from './polling'
 import { formatResource, isWorkspacesResponse, meter, numeric, parseResourceView, ratio, scaled, valid } from './model'
 import type { Dashboard, ResourceView, WorkspaceVolume, Workload } from './model'
-import { allocation, metricUsage, releaseReason, statusGroup, workloadKey, workspaceKey } from './presentation'
+import { allocation, isCurrentWorkload, metricUsage, releaseReason, statusGroup, workloadKey, workspaceKey } from './presentation'
 import { createReleaseIntents, isReleased } from './release'
 
 const dashboard = ref<Dashboard | null>(null), state = ref<'loading' | 'ready' | 'error'>('loading'), error = ref('')
@@ -19,11 +19,11 @@ const expandedGPU = ref(new Set<string>()), expandedHost = ref(false), expandedV
 const meta = {
   monitor: { title: '资源监控', description: '查看 GPU、CPU、内存与存储使用情况。' },
   storage: { title: '存储管理', description: '查看磁盘容量与应用工作卷，释放不再保留的工作卷。' },
-  tasks: { title: '任务监控', description: '查看容器工作负载的运行状态、资源配额与实际使用情况。' },
+  tasks: { title: '任务监控', description: '查看当前运行中的容器工作负载、资源配额与实际使用情况。' },
 }
 const summary = computed(() => dashboard.value?.summary ?? {}), node = computed(() => dashboard.value?.node)
 const gpus = computed(() => dashboard.value?.gpus ?? []), disks = computed(() => node.value?.storage_disks ?? [])
-const workloads = computed(() => dashboard.value?.workloads ?? [])
+const workloads = computed(() => (dashboard.value?.workloads ?? []).filter(isCurrentWorkload))
 const groups = { running: '运行中', waiting: '等待就绪', error: '异常', other: '其他状态' }
 const taskCounts = computed(() => {
   const counts = { running: 0, waiting: 0, error: 0, other: 0 }
@@ -83,7 +83,7 @@ async function refresh() {
   finally { refreshing.value = false }
 }
 function publishCounts() {
-  const detail = { workspaces: volumes.value?.length ?? null, tasks: dashboard.value?.workloads.length ?? null }
+  const detail = { workspaces: volumes.value?.length ?? null, tasks: dashboard.value ? workloads.value.length : null }
   window.dispatchEvent(new CustomEvent('studio:resources-counts', { detail }))
 }
 const releaseDialog = ref<HTMLDialogElement>(), releaseTarget = ref<WorkspaceVolume | null>(null), releaseName = ref(''), releaseError = ref(''), releasing = ref(false)
@@ -247,12 +247,12 @@ onBeforeUnmount(cleanup)
       <p class="table-note">预留容量是工作卷声明容量，不代表物理磁盘实际占用；销毁实例不会自动释放工作卷。</p>
     </template>
     <template v-if="dashboard && currentView === 'tasks'">
-      <div class="kpi-grid"><article class="kpi summary-card panel"><div class="kpi-label">工作负载</div><div class="kpi-value summary-value tabular-nums">{{ workloads.length }}<small>个</small></div><div class="kpi-foot">当前可见容器工作负载</div></article><article v-for="key in (['running','waiting','error'] as const)" :key="key" class="kpi summary-card panel"><div class="kpi-label">{{ groups[key] }}</div><div class="kpi-value summary-value tabular-nums">{{ taskCounts[key] }}<small>个</small></div><div class="kpi-foot">按服务端状态与容器就绪情况</div></article><article v-if="taskCounts.other" class="kpi summary-card panel"><div class="kpi-label">其他状态</div><div class="kpi-value summary-value tabular-nums">{{ taskCounts.other }}<small>个</small></div><div class="kpi-foot">已结束、未知或其他状态</div></article></div>
+      <div class="kpi-grid"><article class="kpi summary-card panel"><div class="kpi-label">工作负载</div><div class="kpi-value summary-value tabular-nums">{{ workloads.length }}<small>个</small></div><div class="kpi-foot">当前运行中的容器工作负载</div></article><article v-for="key in (['running','waiting','error'] as const)" :key="key" class="kpi summary-card panel"><div class="kpi-label">{{ groups[key] }}</div><div class="kpi-value summary-value tabular-nums">{{ taskCounts[key] }}<small>个</small></div><div class="kpi-foot">按服务端状态与容器就绪情况</div></article><article v-if="taskCounts.other" class="kpi summary-card panel"><div class="kpi-label">其他状态</div><div class="kpi-value summary-value tabular-nums">{{ taskCounts.other }}<small>个</small></div><div class="kpi-foot">已结束、未知或其他状态</div></article></div>
       <div class="section-head"><h2>容器工作负载</h2><span>实际使用 / 请求 / 上限</span></div>
       <div class="filter-toolbar"><label class="search"><input v-model="taskSearch" aria-label="搜索工作负载" placeholder="搜索工作负载或命名空间…"></label><div class="chips"><button class="chip" :aria-pressed="taskFilter === 'all'" @click="taskFilter = 'all'">全部</button><button v-for="type in categories" :key="type" class="chip" :aria-pressed="taskFilter === type" @click="taskFilter = type">{{ categoryLabel(type) }}</button></div><select v-model="taskStatus" class="filter-select" aria-label="工作负载状态"><option value="all">全部状态</option><option v-for="(label,key) in groups" :key="key" :value="key">{{ label }}</option></select><span class="filter-status filter-tail">显示 {{ visibleTasks.length }} / {{ workloads.length }} 个</span></div>
       <div v-if="!visibleTasks.length" class="state-box panel"><h2>{{ workloads.length ? '没有符合条件的记录' : '暂无工作负载' }}</h2><p>监控对象是容器工作负载，生成任务请在所属应用查看。</p><button v-if="workloads.length" class="button" @click="clearTasks">清除筛选</button></div>
       <div v-else class="table-panel panel"><table class="task-table"><thead><tr><th>工作负载 / 命名空间</th><th>状态</th><th>GPU 声明</th><th>CPU 实际 / 请求 / 上限</th><th>内存 实际 / 请求 / 上限</th><th>详情</th></tr></thead><tbody><template v-for="w in visibleTasks" :key="workloadKey(w)"><tr class="task-row"><td data-label="工作负载"><span class="cell-main">{{ w.display_name || w.name }}</span><span class="cell-sub">{{ w.namespace }} · {{ categoryLabel(w.type) }}</span></td><td data-label="状态"><span class="badge" :class="statusGroup(w) === 'running' ? 'good' : statusGroup(w) === 'error' ? 'danger' : 'warning'">{{ groups[statusGroup(w)] }}</span><span class="cell-sub">{{ w.status }} · {{ w.containers.filter(c => c.ready).length }}/{{ w.containers.length }} 就绪</span></td><td data-label="GPU 声明" class="num tabular-nums">{{ gpuDeclaration(w) }}<span class="cell-sub">实测利用率 / 显存未提供</span></td><td data-label="CPU 实际 / 请求 / 上限" class="number num tabular-nums">{{ allocation(w, 'cpu') }}</td><td data-label="内存 实际 / 请求 / 上限" class="number num tabular-nums">{{ allocation(w, 'memory') }}</td><td data-label="详情"><button class="table-action" :aria-expanded="expandedTask.has(workloadKey(w))" @click="toggle(expandedTask, workloadKey(w))">{{ expandedTask.has(workloadKey(w)) ? '收起' : '展开' }} ⌄</button></td></tr><tr v-if="expandedTask.has(workloadKey(w))" class="row-detail"><td colspan="6"><div class="inline-detail"><p>Pod {{ w.pod_name || w.name }} · UID {{ w.pod_uid }} · 运行时长 {{ w.age }} · 节点未提供</p><div v-for="c in w.containers" :key="c.name" class="container-detail"><p><strong>{{ c.name }}</strong> · {{ c.ready ? '就绪' : '未就绪' }} · 重启 {{ c.restarts }} 次</p><p>CPU：实际 {{ metricUsage(c.cpu) }} / 请求 {{ formatResource(c.cpu.request) }} / 上限 {{ valid(c.cpu.limit) ? formatResource(c.cpu.limit) : '未设置' }} · {{ quality(c.cpu.quality) }} · {{ sampleTime(c.cpu.sampled_at) }}</p><p>内存：实际 {{ metricUsage(c.memory) }} / 请求 {{ formatResource(c.memory.request, 'bytes') }} / 上限 {{ valid(c.memory.limit) ? formatResource(c.memory.limit, 'bytes') : '未设置' }} · {{ quality(c.memory.quality) }} · {{ sampleTime(c.memory.sampled_at) }}</p><p>GPU 请求 {{ numeric(c.gpu_request) }} 份 / 上限 {{ numeric(c.gpu_limit) }} 份 · 实测显存未提供</p><p v-if="c.cpu.reason || c.memory.reason">观测原因：{{ c.cpu.reason || c.memory.reason }}</p></div></div></td></tr></template></tbody></table></div>
-      <p class="table-note">资源按容器归属统计，未观测值不按零计。GPU 声明份额不代表独占整卡，整卡显存不复制到各工作负载。</p>
+      <p class="table-note">只统计仍在运行、等待或失败的工作负载。已成功结束的一次性任务不列入当前任务。资源按容器归属统计，未观测值不按零计。GPU 声明份额不代表独占整卡，整卡显存不复制到各工作负载。</p>
     </template>
     <dialog ref="releaseDialog" id="release-workspace-dialog" aria-labelledby="release-title" @cancel.prevent="closeRelease">
       <form @submit.prevent="submitRelease"><div class="dialog-head"><h2 id="release-title">确认释放工作卷</h2><button type="button" class="button" :disabled="releasing" @click="closeRelease">取消</button></div><div class="dialog-kv"><p>PVC：<b>{{ releaseTarget?.pvc_name }}</b></p><p>PV：<b>{{ releaseTarget?.pv_name || '未提供' }}</b></p><p>所属应用：<b>{{ releaseTarget?.app_display_name || releaseTarget?.app_id }}</b></p></div><p class="release-warning">将清空该卷残留数据、删除 PVC 并解除绑定，使底层 PV 回到可分配状态。此操作无法撤销；不代表删除 PV 对象，也不承诺释放同等物理磁盘容量。</p><label class="field">请输入 PVC 名称确认<input v-model="releaseName" type="text" autocomplete="off" :disabled="releasing" :placeholder="releaseTarget?.pvc_name"></label><p v-if="releaseBlock || releaseError" class="release-warning" role="alert">{{ releaseError || releaseBlock }}</p><div class="dialog-actions"><button type="button" class="button" :disabled="releasing" @click="closeRelease">保留工作卷</button><button type="submit" class="button danger" :disabled="releasing || !!releaseBlock || !releaseTarget || releaseName !== releaseTarget.pvc_name">{{ releasing ? '释放中…' : '确认释放工作卷' }}</button></div></form>
