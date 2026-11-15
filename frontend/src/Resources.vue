@@ -896,9 +896,10 @@ onBeforeUnmount(cleanup)
                   </td>
                   <td data-label="操作">
                     <button v-if="m.status === 'downloading' || m.status === 'verifying_sha256' || m.status === 'queued' || m.status === 'evicting'" type="button" class="link-button" :aria-expanded="expandedModel.has(m.sha256)" @click="toggle(expandedModel, m.sha256)">{{ expandedModel.has(m.sha256) ? '收起详情' : '查看详情' }} ⌄</button>
-                    <button v-else-if="m.status === 'ready' && m.active_pins + m.reserved_pins > 0" type="button" class="table-action" :title="`存在 ${m.active_pins + m.reserved_pins} 个活跃/预留引用锁，点击查看 409 MODEL_IN_USE 保护`" @click="openLockedModel(m)">锁止禁删 ⓘ</button>
+                    <button v-else-if="(m.status === 'ready' || m.status === 'failed') && m.active_pins + m.reserved_pins > 0" type="button" class="table-action" :title="`存在 ${m.active_pins + m.reserved_pins} 个活跃/预留引用锁，点击查看 409 MODEL_IN_USE 保护`" @click="openLockedModel(m)">锁止禁删 ⓘ</button>
                     <button v-else-if="m.status === 'ready'" type="button" class="table-action release" :disabled="Boolean(canEvictModelReason(m))" :title="canEvictModelReason(m) || '清理本地 CAS 模型缓存'" @click="openEvictModel(m)">清理缓存</button>
-                    <span v-else class="disabled-action" tabindex="0" title="未落盘或待续传条目由智能体调用 model.ensure 按需受控拉取">无本地缓存块<span class="cell-sub">由 model.ensure 拉取</span></span>
+                    <button v-else-if="m.status === 'failed'" type="button" class="table-action release" :disabled="Boolean(canEvictModelReason(m))" :title="canEvictModelReason(m) || '清理断点续传残留分片并重置状态'" @click="openEvictModel(m)">清理残留</button>
+                    <span v-else class="disabled-action" tabindex="0" title="未落盘条目由智能体调用 model.ensure 按需受控拉取">无本地缓存块<span class="cell-sub">由 model.ensure 拉取</span></span>
                   </td>
                 </tr>
                 <tr v-if="expandedModel.has(m.sha256)" class="row-detail">
@@ -1197,17 +1198,19 @@ onBeforeUnmount(cleanup)
     </dialog>
     <dialog ref="evictModelDialog" id="evict-model-dialog" aria-labelledby="evict-model-title" @cancel.prevent="closeEvictModel">
       <form @submit.prevent="submitEvictModel">
-        <div class="dialog-head"><h2 id="evict-model-title">确认清理本地模型缓存</h2><button type="button" class="button" :disabled="evictingModel" @click="closeEvictModel">取消</button></div>
+        <div class="dialog-head"><h2 id="evict-model-title">{{ evictModelTarget?.status === 'failed' ? '确认清理失败残留分片' : '确认清理本地模型缓存' }}</h2><button type="button" class="button" :disabled="evictingModel" @click="closeEvictModel">取消</button></div>
         <div v-if="evictModelTarget" class="dialog-kv">
           <p>模型编号：<b>{{ evictModelTarget.catalog_code }}</b> · <b>{{ evictModelTarget.display_name || evictModelTarget.model_id }}</b></p>
           <p>容器视图：<b class="mono-code">/models/{{ evictModelTarget.relative_view_path }}</b></p>
-          <p>体积与校验：<b>{{ formatModelBytes(evictModelTarget.size_bytes) }}</b> · <b class="mono-code">sha256:{{ evictModelTarget.sha256.slice(0, 16) }}…</b></p>
+          <p v-if="evictModelTarget.status === 'failed'">残留分片：<b>{{ formatModelBytes(evictModelTarget.part_bytes_on_disk || evictModelTarget.bytes_downloaded) }}</b> / {{ formatModelBytes(evictModelTarget.size_bytes) }} · <b class="mono-code">sha256:{{ evictModelTarget.sha256.slice(0, 16) }}…</b></p>
+          <p v-else>体积与校验：<b>{{ formatModelBytes(evictModelTarget.size_bytes) }}</b> · <b class="mono-code">sha256:{{ evictModelTarget.sha256.slice(0, 16) }}…</b></p>
         </div>
-        <p>将原子卸载该模型的只读目录软链并回收底层 CAS 对象块，释放本地磁盘空间。模型分类编号与目录登记元数据仍保留（退回 <code>not_installed</code> 状态），后续可通过 <code>model.ensure</code> 重新单飞拉取。</p>
+        <p v-if="evictModelTarget?.status === 'failed'">将安全回收该模型的断点续传残留分片（<code>.part</code>）并清空错误状态，释放本地磁盘空间。模型分类编号与目录登记元数据仍保留（退回 <code>not_installed</code> 状态），后续可通过 <code>model.ensure</code> 重新单飞拉取。</p>
+        <p v-else>将原子卸载该模型的只读目录软链并回收底层 CAS 对象块，释放本地磁盘空间。模型分类编号与目录登记元数据仍保留（退回 <code>not_installed</code> 状态），后续可通过 <code>model.ensure</code> 重新单飞拉取。</p>
         <p v-if="evictModelError || evictModelBlock" class="release-warning" role="alert">{{ evictModelError || evictModelBlock }}</p>
         <div class="dialog-actions">
-          <button type="button" class="button" :disabled="evictingModel" @click="closeEvictModel">保留缓存</button>
-          <button type="submit" class="button danger" :disabled="evictingModel || Boolean(evictModelBlock) || !evictModelTarget">{{ evictingModel ? '清理中…' : '确认清理缓存' }}</button>
+          <button type="button" class="button" :disabled="evictingModel" @click="closeEvictModel">{{ evictModelTarget?.status === 'failed' ? '暂不清理' : '保留缓存' }}</button>
+          <button type="submit" class="button danger" :disabled="evictingModel || Boolean(evictModelBlock) || !evictModelTarget">{{ evictingModel ? '清理中…' : (evictModelTarget?.status === 'failed' ? '确认清理残留' : '确认清理缓存') }}</button>
         </div>
       </form>
     </dialog>

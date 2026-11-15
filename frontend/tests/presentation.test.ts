@@ -390,8 +390,20 @@ test('seven-state model cache guard, host-path scrub, 409 MODEL_IN_USE pin lock,
   assert.equal(evictIntents.key(baseModel), 'evk-1')
   assert.equal(evictIntents.key({ ...baseModel }), 'evk-1')
   assert.equal(evictIntents.key({ ...baseModel, download_fence: 5 }), 'evk-2')
+  const failedResidualModel: ModelCacheItem = {
+    ...baseModel,
+    status: 'failed',
+    download_fence: 6,
+    bytes_downloaded: 1_048_576,
+    part_bytes_on_disk: 1_048_576,
+    error_code: 'MODEL_DOWNLOAD_INTERRUPTED',
+  }
+  assert.equal(modelEvictBlockReason(failedResidualModel, { ...gateCtx, liveModels: [failedResidualModel] }), '')
+  assert.equal(evictIntents.key(failedResidualModel), 'evk-3')
   assert.throws(() => evictIntents.key(pinnedModel), /MODEL_EVICT_NOT_ALLOWED/)
   assert.throws(() => evictIntents.key({ ...baseModel, status: 'downloading' }), /MODEL_EVICT_NOT_ALLOWED/)
+  assert.throws(() => evictIntents.key({ ...baseModel, status: 'not_installed' }), /MODEL_EVICT_NOT_ALLOWED/)
   assert.equal(isModelEvictSuccess({ status: 'evicted', sha256: sha }, sha), true)
+  assert.equal(isModelEvictSuccess({ status: 'not_installed', sha256: sha }, sha), true)
   assert.equal(isModelEvictSuccess({ status: 'ready', sha256: sha }, sha), false)
 })

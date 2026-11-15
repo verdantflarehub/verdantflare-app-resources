@@ -401,8 +401,8 @@ export function modelEvictBlockReason(
   if (live.active_pins + live.reserved_pins > 0) {
     return `409 MODEL_IN_USE：存在 ${live.active_pins + live.reserved_pins} 个活跃或预留引用锁，禁止清理`
   }
-  if (live.status !== 'ready') {
-    return '当前状态不可执行缓存清理（仅 ready 且 0 引用模型允许清理）'
+  if (live.status !== 'ready' && live.status !== 'failed') {
+    return '当前状态不可执行缓存清理（仅 ready 或 failed 且 0 引用模型允许清理）'
   }
   return ''
 }
@@ -412,7 +412,7 @@ export function createModelEvictIntents(makeKey = () => `evict-${uuidV7()}`) {
   return {
     key(target: ModelCacheItem) {
       if (!/^[0-9a-f]{64}$/.test(target.sha256)) throw new Error('INVALID_MODEL_SHA256')
-      if (target.status !== 'ready' || target.active_pins + target.reserved_pins > 0) {
+      if ((target.status !== 'ready' && target.status !== 'failed') || target.active_pins + target.reserved_pins > 0) {
         throw new Error('MODEL_EVICT_NOT_ALLOWED')
       }
       const identity = `${target.sha256}:${target.download_fence}`
