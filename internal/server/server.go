@@ -44,6 +44,43 @@ func fail(w http.ResponseWriter, status int, code string) {
 	reply(w, status, map[string]string{"code": code})
 }
 
+func failSourceError(w http.ResponseWriter, upstream *resources.SourceError) {
+	body := map[string]any{"code": upstream.Code}
+	if upstream.Message != "" {
+		body["message"] = upstream.Message
+	}
+	if upstream.Code == "MODEL_IN_USE" || upstream.ActivePins > 0 || upstream.ReservedPins > 0 {
+		body["active_pins"] = upstream.ActivePins
+		body["reserved_pins"] = upstream.ReservedPins
+	}
+	reply(w, upstream.Status, body)
+}
+
+func validModelIdempotencyKey(value string) bool {
+	return len(value) >= 8 && len(value) <= 128 && !strings.ContainsAny(value, " \t\r\n")
+}
+
+func validResidencyID(id string) bool {
+	if len(id) < 1 || len(id) > 128 {
+		return false
+	}
+	if id == "." || id == ".." || strings.ContainsAny(id, "/\\?# \t\r\n") {
+		return false
+	}
+	return true
+}
+
+func validExpectedResidencyVersion(bootID string, epoch, seq *int64) bool {
+	trimmedBoot := strings.TrimSpace(bootID)
+	if len(trimmedBoot) < 1 || len(trimmedBoot) > 128 {
+		return false
+	}
+	if epoch == nil || *epoch < 0 || seq == nil || *seq < 0 {
+		return false
+	}
+	return true
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -55,7 +92,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fail(w, 401, "UNAUTHENTICATED")
 		return
 	}
-	if r.URL.Path == "/api/v1/workspaces/release" {
+	if r.URL.Path == "/api/v1/workspaces/release" || r.URL.Path == "/api/v1/gpu-residency/evict" || r.URL.Path == "/api/v1/gpu-residency/force-drain" || r.URL.Path == "/api/v1/models/evict" {
 		if r.Method != http.MethodPost {
 			w.Header().Set("Allow", "POST")
 			fail(w, 405, "METHOD_NOT_ALLOWED")
@@ -70,23 +107,80 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fail(w, 403, "FORBIDDEN")
 			return
 		}
-		var in resources.ReleaseWorkspaceInput
-		if strictjson.Decode(r.Body, 4096, &in) != nil || strings.TrimSpace(in.IdempotencyKey) == "" || strings.TrimSpace(in.Namespace) == "" || strings.TrimSpace(in.PVCName) == "" {
-			fail(w, 400, "INVALID_ARGUMENT")
-			return
-		}
-		result, err := s.resources.ReleaseWorkspace(r.Context(), identity, in)
-		if err != nil {
-			var upstream *resources.SourceError
-			if errors.As(err, &upstream) {
-				fail(w, upstream.Status, upstream.Code)
-			} else {
-				fail(w, 502, "TELEMETRY_INVALID")
+		switch r.URL.Path {
+		case "/api/v1/workspaces/release":
+			var in resources.ReleaseWorkspaceInput
+			if strictjson.Decode(r.Body, 4096, &in) != nil || strings.TrimSpace(in.IdempotencyKey) == "" || strings.TrimSpace(in.Namespace) == "" || strings.TrimSpace(in.PVCName) == "" {
+				fail(w, 400, "INVALID_ARGUMENT")
+				return
 			}
+			result, err := s.resources.ReleaseWorkspace(r.Context(), identity, in)
+			if err != nil {
+				var upstream *resources.SourceError
+				if errors.As(err, &upstream) {
+					failSourceError(w, upstream)
+				} else {
+					fail(w, 502, "TELEMETRY_INVALID")
+				}
+				return
+			}
+			reply(w, 200, result)
+			return
+		case "/api/v1/gpu-residency/evict":
+			var in resources.EvictGPUResidencyInput
+			if strictjson.Decode(r.Body, 4096, &in) != nil || len(strings.TrimSpace(in.IdempotencyKey)) == 0 || len(in.IdempotencyKey) > 128 || !validResidencyID(in.InstanceID) || !validExpectedResidencyVersion(in.ExpectedBootID, in.ExpectedGPUEpoch, in.ExpectedResidencySeq) {
+				fail(w, 400, "INVALID_ARGUMENT")
+				return
+			}
+			result, err := s.resources.EvictGPUResidency(r.Context(), identity, in)
+			if err != nil {
+				var upstream *resources.SourceError
+				if errors.As(err, &upstream) {
+					failSourceError(w, upstream)
+				} else {
+					fail(w, 502, "TELEMETRY_INVALID")
+				}
+				return
+			}
+			reply(w, 200, result)
+			return
+		case "/api/v1/gpu-residency/force-drain":
+			var in resources.ForceDrainGPUResidencyInput
+			if strictjson.Decode(r.Body, 4096, &in) != nil || len(strings.TrimSpace(in.IdempotencyKey)) == 0 || len(in.IdempotencyKey) > 128 || !validResidencyID(in.InstanceID) || !validExpectedResidencyVersion(in.ExpectedBootID, in.ExpectedGPUEpoch, in.ExpectedResidencySeq) {
+				fail(w, 400, "INVALID_ARGUMENT")
+				return
+			}
+			result, err := s.resources.ForceDrainGPUResidency(r.Context(), identity, in)
+			if err != nil {
+				var upstream *resources.SourceError
+				if errors.As(err, &upstream) {
+					failSourceError(w, upstream)
+				} else {
+					fail(w, 502, "TELEMETRY_INVALID")
+				}
+				return
+			}
+			reply(w, 200, result)
+			return
+		case "/api/v1/models/evict":
+			var in resources.EvictModelInput
+			if strictjson.Decode(r.Body, 4096, &in) != nil || !validModelIdempotencyKey(in.IdempotencyKey) || !resources.ValidModelSHA256(in.SHA256) {
+				fail(w, 400, "INVALID_ARGUMENT")
+				return
+			}
+			result, err := s.resources.EvictModel(r.Context(), identity, in)
+			if err != nil {
+				var upstream *resources.SourceError
+				if errors.As(err, &upstream) {
+					failSourceError(w, upstream)
+				} else {
+					fail(w, 502, "TELEMETRY_INVALID")
+				}
+				return
+			}
+			reply(w, 200, result)
 			return
 		}
-		reply(w, 200, result)
-		return
 	}
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", "GET")
@@ -124,7 +218,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(data)
 		return
 	}
-	if r.URL.Path != "/api/v1/dashboard" && r.URL.Path != "/api/v1/workspaces" {
+	if r.URL.Path != "/api/v1/dashboard" && r.URL.Path != "/api/v1/workspaces" && r.URL.Path != "/api/v1/gpu-scheduler" && r.URL.Path != "/api/v1/models" {
 		fail(w, 404, "NOT_FOUND")
 		return
 	}
@@ -138,7 +232,35 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			var upstream *resources.SourceError
 			if errors.As(err, &upstream) {
-				fail(w, upstream.Status, upstream.Code)
+				failSourceError(w, upstream)
+			} else {
+				fail(w, 502, "TELEMETRY_INVALID")
+			}
+			return
+		}
+		reply(w, 200, result)
+		return
+	}
+	if r.URL.Path == "/api/v1/gpu-scheduler" {
+		result, err := s.resources.GPUScheduler(r.Context(), identity)
+		if err != nil {
+			var upstream *resources.SourceError
+			if errors.As(err, &upstream) {
+				failSourceError(w, upstream)
+			} else {
+				fail(w, 502, "TELEMETRY_INVALID")
+			}
+			return
+		}
+		reply(w, 200, result)
+		return
+	}
+	if r.URL.Path == "/api/v1/models" {
+		result, err := s.resources.Models(r.Context(), identity)
+		if err != nil {
+			var upstream *resources.SourceError
+			if errors.As(err, &upstream) {
+				failSourceError(w, upstream)
 			} else {
 				fail(w, 502, "TELEMETRY_INVALID")
 			}
@@ -153,7 +275,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var upstream *resources.SourceError
 		if errors.As(err, &upstream) {
-			fail(w, upstream.Status, upstream.Code)
+			failSourceError(w, upstream)
 		} else {
 			fail(w, 502, "TELEMETRY_INVALID")
 		}

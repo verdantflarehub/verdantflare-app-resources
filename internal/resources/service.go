@@ -16,6 +16,15 @@ type WorkspaceSource interface {
 	Workspaces(context.Context, Identity) (WorkspacesResponse, error)
 	ReleaseWorkspace(context.Context, Identity, ReleaseWorkspaceInput) (ReleaseWorkspaceResponse, error)
 }
+type GPUSchedulerSource interface {
+	GPUScheduler(context.Context, Identity) (GPUSchedulerResponse, error)
+	EvictGPUResidency(context.Context, Identity, EvictGPUResidencyInput) (GPUResidencyActionResponse, error)
+	ForceDrainGPUResidency(context.Context, Identity, ForceDrainGPUResidencyInput) (GPUResidencyActionResponse, error)
+}
+type ModelCacheSource interface {
+	Models(context.Context, Identity) (ModelsResponse, error)
+	EvictModel(context.Context, Identity, EvictModelInput) (EvictModelResponse, error)
+}
 type Service struct {
 	Source Source
 	Now    func() time.Time
@@ -35,6 +44,46 @@ func (s Service) ReleaseWorkspace(ctx context.Context, identity Identity, input 
 		return ReleaseWorkspaceResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
 	}
 	return ws.ReleaseWorkspace(ctx, identity, input)
+}
+
+func (s Service) GPUScheduler(ctx context.Context, identity Identity) (GPUSchedulerResponse, error) {
+	gs, ok := s.Source.(GPUSchedulerSource)
+	if !ok {
+		return GPUSchedulerResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return gs.GPUScheduler(ctx, identity)
+}
+
+func (s Service) EvictGPUResidency(ctx context.Context, identity Identity, input EvictGPUResidencyInput) (GPUResidencyActionResponse, error) {
+	gs, ok := s.Source.(GPUSchedulerSource)
+	if !ok {
+		return GPUResidencyActionResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return gs.EvictGPUResidency(ctx, identity, input)
+}
+
+func (s Service) ForceDrainGPUResidency(ctx context.Context, identity Identity, input ForceDrainGPUResidencyInput) (GPUResidencyActionResponse, error) {
+	gs, ok := s.Source.(GPUSchedulerSource)
+	if !ok {
+		return GPUResidencyActionResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return gs.ForceDrainGPUResidency(ctx, identity, input)
+}
+
+func (s Service) Models(ctx context.Context, identity Identity) (ModelsResponse, error) {
+	ms, ok := s.Source.(ModelCacheSource)
+	if !ok {
+		return ModelsResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return ms.Models(ctx, identity)
+}
+
+func (s Service) EvictModel(ctx context.Context, identity Identity, input EvictModelInput) (EvictModelResponse, error) {
+	ms, ok := s.Source.(ModelCacheSource)
+	if !ok {
+		return EvictModelResponse{}, &SourceError{Status: 503, Code: "STATION_UNAVAILABLE"}
+	}
+	return ms.EvictModel(ctx, identity, input)
 }
 
 func valid(v *float64) bool     { return v != nil && *v >= 0 && !math.IsNaN(*v) && !math.IsInf(*v, 0) }
