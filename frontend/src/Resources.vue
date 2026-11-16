@@ -885,7 +885,7 @@ onBeforeUnmount(cleanup)
                     </div>
                   </td>
                   <td data-label="生命周期">
-                    <span class="badge" :class="modelStatusBadge(m.status).tone">{{ modelStatusBadge(m.status).label }}</span>
+                    <span class="badge" :class="modelStatusBadge(m.status, m.paid_access).tone">{{ modelStatusBadge(m.status, m.paid_access).label }}</span>
                   </td>
                   <td data-label="引用锁">
                     <template v-if="m.active_pins + m.reserved_pins > 0">
@@ -899,6 +899,7 @@ onBeforeUnmount(cleanup)
                     <button v-else-if="(m.status === 'ready' || m.status === 'failed') && m.active_pins + m.reserved_pins > 0" type="button" class="table-action" :title="`存在 ${m.active_pins + m.reserved_pins} 个活跃/预留引用锁，点击查看 409 MODEL_IN_USE 保护`" @click="openLockedModel(m)">锁止禁删 ⓘ</button>
                     <button v-else-if="m.status === 'ready'" type="button" class="table-action release" :disabled="Boolean(canEvictModelReason(m))" :title="canEvictModelReason(m) || '清理本地 CAS 模型缓存'" @click="openEvictModel(m)">清理缓存</button>
                     <button v-else-if="m.status === 'failed'" type="button" class="table-action release" :disabled="Boolean(canEvictModelReason(m))" :title="canEvictModelReason(m) || '清理断点续传残留分片并重置状态'" @click="openEvictModel(m)">清理残留</button>
+                    <span v-else-if="m.paid_access" class="disabled-action" tabindex="0" title="违反零付费红线：严禁拉取付费解锁模型">禁止拉取<span class="cell-sub" style="color:var(--danger)">付费禁入 (403)</span></span>
                     <span v-else class="disabled-action" tabindex="0" title="未落盘条目由智能体调用 model.ensure 按需受控拉取">无本地缓存块<span class="cell-sub">由 model.ensure 拉取</span></span>
                   </td>
                 </tr>

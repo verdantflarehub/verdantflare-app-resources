@@ -345,7 +345,13 @@ export function isResidencyActionSuccess(value: unknown, instanceId: string): va
     typeof res.residency_state === 'string'
 }
 
-export function modelStatusBadge(status: string): { label: string; tone: 'good' | 'blue' | 'warning' | 'danger' | '' } {
+export function modelStatusBadge(
+  status: string,
+  paidAccess = false,
+): { label: string; tone: 'good' | 'blue' | 'warning' | 'danger' | '' } {
+  if (paidAccess) {
+    return { label: '付费禁入 (403)', tone: 'danger' }
+  }
   const map: Record<string, { label: string; tone: 'good' | 'blue' | 'warning' | 'danger' | '' }> = {
     ready: { label: '已就绪 (ready)', tone: 'good' },
     downloading: { label: '下载中 (downloading)', tone: 'blue' },
@@ -369,6 +375,7 @@ export function modelPinScopeLabel(scope: string): string {
 }
 
 export function modelPinSummary(item: ModelCacheItem): string {
+  if (item.paid_access) return '禁止拉取 · 违反零付费红线'
   const total = item.active_pins + item.reserved_pins
   if (total > 0) {
     const scopes = item.pin_scopes?.length ? item.pin_scopes.map(modelPinScopeLabel).join('、') : '活跃任务或 API'

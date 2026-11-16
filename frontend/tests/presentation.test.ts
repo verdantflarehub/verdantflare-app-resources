@@ -369,6 +369,8 @@ test('seven-state model cache guard, host-path scrub, 409 MODEL_IN_USE pin lock,
   assert.equal(modelStatusBadge('ready').tone, 'good')
   assert.equal(modelStatusBadge('downloading').tone, 'blue')
   assert.equal(modelStatusBadge('failed').tone, 'danger')
+  assert.deepEqual(modelStatusBadge('not_installed', true), { label: '付费禁入 (403)', tone: 'danger' })
+  assert.equal(modelPinSummary({ ...baseModel, status: 'not_installed', paid_access: true }), '禁止拉取 · 违反零付费红线')
   assert.match(modelPinSummary({ ...baseModel, active_pins: 1, reserved_pins: 1, pin_scopes: ['published_api'] }), /已发布工作流 API/)
 
   const gateCtx: ModelEvictGateContext = {
